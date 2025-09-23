@@ -5,14 +5,15 @@ namespace App\Console\Commands\Ocorrencias;
 use App\Models\Logs;
 use App\Http\Headers;
 use GuzzleHttp\Client;
-use App\Console\UrlBase;
+use App\Console\UrlBaseNorber;
 use App\Http\BodyRequisition;
 use Illuminate\Console\Command;
 use App\Models\OcorrenciasAusencias;
+use Illuminate\Support\Carbon;
 
 class RetornaOcorrenciaAusencia extends Command
 {
-    protected $signature = 'norber:retorna-ocorrencia-ausencia 
+    protected $signature = 'norber:retornar-ocorrencia-ausencia 
                            {--start-date= : Data de início (formato: YYYY-MM-DD)}
                             {--end-date= : Data de fim (formato: YYYY-MM-DD)}
                             {--Conceito= : Conceito (formato: inteiro)}
@@ -20,15 +21,15 @@ class RetornaOcorrenciaAusencia extends Command
 
     protected $description = "Listar ocorrencias de ausencia";
 
-    protected function urlBaseApi()
+    protected function UrlBaseNorberApi()
     {
-        $urlBase = new UrlBase();
-        return $urlBase->getUrlbase();
+        $UrlBaseNorber = new UrlBaseNorber();
+        return $UrlBaseNorber->getUrlBaseNorber();
     }
 
     public function handle()
     {
-        // Obter as datas dos parâmetros ou usar padrão
+
         $startDate = $this->option('start-date');
         $endDate = $this->option('end-date');
         $conceito = $this->option('Conceito');
@@ -39,8 +40,6 @@ class RetornaOcorrenciaAusencia extends Command
             $this->error('Por favor, forneça ambas as datas: --start-date e --end-date');
             return 1;
         }
-
-        // Validar formato das datas
         if (
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)
@@ -51,16 +50,12 @@ class RetornaOcorrenciaAusencia extends Command
 
         $client = new Client();
         $headers = Headers::getHeaders();
-
-        // Passar as datas para o BodyRequisition
-
-        $url_base = $this->urlBaseApi();
-
+        $url_base = $this->UrlBaseNorberApi();
         $command = 'Ocorrencia/RetornaOcorrenciaAusencia';
-
         $ultimaPaginaProcessada = OcorrenciasAusencias::where('DATA_OCORRENCIA', '>=', $startDate)
-            ->where('DATA_OCORRENCIA', '<=', $endDate)
+            ->where('DATA_OCORRENCIA', '<=',  $endDate)
             ->max('PAGINA') ?? 0;
+
 
         for ($pagina = $ultimaPaginaProcessada + 1;; $pagina++) {
 
@@ -74,12 +69,7 @@ class RetornaOcorrenciaAusencia extends Command
 
                 $responseContent = $response->getBody()->getContents();
                 $data = json_decode($responseContent, true);
-
-                // pega só a lista de itens
                 $itens = $data['ListaDeFiltro'] ?? [];
-
-
-
                 $resultado = [];
 
                 foreach ($data['ListaDeFiltro'] as $filtro) {
@@ -97,15 +87,18 @@ class RetornaOcorrenciaAusencia extends Command
                         ];
                     }
                 }
-
                 try {
-
                     foreach ($resultado as $item) {
+
+                        $dataOcorrencia = Carbon::createFromFormat('d/m/Y', $item['DataOcorrencia'])->format('Y-m-d');
+                        $inicioExpediente = Carbon::createFromFormat('d/m/Y H:i', $item['Inicio'])->format('Y-m-d H:i:s');
+                        $fimExpediente = Carbon::createFromFormat('d/m/Y H:i', $item['Fim'])->format('Y-m-d H:i:s');
+
                         OcorrenciasAusencias::UpdateOrCreate([
                             'MATRICULA'         => $item['Matricula'],
-                            'DATA_OCORRENCIA'   => $item['DataOcorrencia'],
-                            'INICIO_EXPEDIENTE' => $item['Inicio'],
-                            'FIM_EXPEDIENTE'    => $item['Fim'],
+                            'DATA_OCORRENCIA'   => $dataOcorrencia,
+                            'INICIO_EXPEDIENTE' => $inicioExpediente,
+                            'FIM_EXPEDIENTE'    => $fimExpediente,
                             'DESCRICAO'         => $item['Descricao'],
                             'JUSTIFICATIVA'     => $item['Justificativa'],
                             'QUANTIDADE_HORAS'  => $item['QtdeHoras'],
@@ -116,7 +109,7 @@ class RetornaOcorrenciaAusencia extends Command
                     $this->info("Página {$pagina} processada com sucesso. Total registros: " . count($itens));
 
                     Logs::create([
-                        'DATA_EXECUCAO' => now(),
+                        'DATA_EXECUCAO' => date('Y-m-d'),
                         'COMANDO_EXECUTADO' =>  $command . ' - ' . json_encode($body),
                         'STATUS_COMANDO' => $response->getStatusCode(),
                         'TOTAL_REGISTROS' => count($itens)

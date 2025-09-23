@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands\Marcacoes;
 
+use Carbon\Carbon;
+use App\Models\Logs;
 use App\Http\Headers;
 use GuzzleHttp\Client;
-use App\Console\UrlBase;
 use App\Http\BodyRequisition;
-use Illuminate\Console\Command;
+use App\Console\UrlBaseNorber;
 use App\Models\MarcacoesPontos;
-use App\Models\Logs;
+use Illuminate\Console\Command;
 
 class RetornarMarcacoes extends Command
 {
@@ -19,12 +20,14 @@ class RetornarMarcacoes extends Command
                             {--Conceito= : Conceito (formato: inteiro)}
                             {--CodigoExterno= : Código externo (formato: string)}';
 
-    protected $description = "Listar marcações de pontos";
+    protected $description = "Listar marcações de pontos" . PHP_EOL .
+        "Modo de Uso: Data Inicial = (formato: YYYY-MM-DD) | Data Final = (formato: YYYY-MM-DD) | Conceito = (1 para Empresa, 3 para Matrícula) | Codigo Externo= (Número com base no conceito)";
 
-    protected function urlBaseApi()
+
+    protected function UrlBaseNorberApi()
     {
-        $urlBase = new UrlBase();
-        return $urlBase->getUrlbase();
+        $UrlBaseNorber = new UrlBaseNorber();
+        return $UrlBaseNorber->getUrlBaseNorber();
     }
 
     public function handle()
@@ -42,20 +45,10 @@ class RetornarMarcacoes extends Command
             return 1;
         }
 
-        // Validar formato das datas
-        if (
-            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) ||
-            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)
-        ) {
-            $this->error('Formato de data inválido. Use YYYY-MM-DD');
-            return 1;
-        }
-
         $client = new Client();
         $headers = Headers::getHeaders();
-        $url_base = $this->urlBaseApi();
+        $url_base = $this->UrlBaseNorberApi();
         $command = 'marcacao/RetornaMarcacoes';
-
 
 
         $ultimaPaginaProcessada = MarcacoesPontos::where('DATA', '>=', $startDate)
@@ -119,9 +112,13 @@ class RetornarMarcacoes extends Command
                         $i++;
                     }
 
+
+
                     foreach ($marcacoes as $marcacao) {
+
+
                         MarcacoesPontos::updateOrCreate([
-                            'DATA' => $dado['Data'],
+                            'DATA' => Carbon::createFromFormat('d/m/Y', $dado['Data'])->format('Y-m-d'),
                             'MATRICULA' => $dado['Matricula'],
                             'NOME' => $dado['Nome'],
                             'CPF' => $dado['Cpf'],
@@ -134,7 +131,7 @@ class RetornarMarcacoes extends Command
                 $this->info("Página {$pagina} processada com sucesso. Total registros: " . count($dadosCorrigidos));
 
                 Logs::create([
-                    'DATA_EXECUCAO' => now(),
+                    'DATA_EXECUCAO' => date('Y-m-d'),
                     'COMANDO_EXECUTADO' =>  $command . ' - ' . json_encode($body),
                     'STATUS_COMANDO' => $response->getStatusCode(),
                     'TOTAL_REGISTROS' => count($dadosCorrigidos)

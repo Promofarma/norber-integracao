@@ -29,6 +29,7 @@ RUN apk update && apk add --no-cache \
     php83-zip \
     php83-intl \
     php83-xml \
+    php83-simplexml \
     php83-ctype \
     php83-openssl \
     php83-phar \
@@ -48,6 +49,7 @@ RUN apk update && apk add --no-cache \
 
 # Instalação do Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --no-interaction
+
 
 # Instalação do extensão do SQL Server (PDO)
 RUN cd /tmp && \

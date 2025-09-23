@@ -57,4 +57,21 @@ class BodyRequisition
             "Pagina" => $pagina
         ];
     }
+
+    public static function getBodyV2($startDate = null, $conceito = null, $codigoExterno = null, $pagina = null)
+    {
+
+
+        return [
+            "DataInicial"  => $startDate,
+            "ListaDeFiltros" => [
+                [
+                    "Conceito"      => $conceito,
+                    "CodigoExterno" => $codigoExterno
+
+                ]
+            ],
+            "Pagina" => $pagina
+        ];
+    }
 }

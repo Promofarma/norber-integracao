@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Http\Headers;
 use GuzzleHttp\Client;
-use App\Console\UrlBase;
+use App\Console\UrlBaseNorber;
 use App\Http\BodyToken;
 use Illuminate\Console\Command;
 
@@ -13,10 +13,10 @@ class ResgatarToken extends Command
     protected $signature = "norber:resgatar-token";
     protected $description = 'Resgata o token e salva no .env';
 
-    protected function urlBaseApi()
+    protected function UrlBaseNorberApi()
     {
-        $urlBase = new UrlBase();
-        return $urlBase->getUrlbase();
+        $UrlBaseNorber = new UrlBaseNorber();
+        return $UrlBaseNorber->getUrlBaseNorber();
     }
 
     public function handle()
@@ -24,7 +24,7 @@ class ResgatarToken extends Command
         $client = new Client();
         $headers = Headers::getHeaders();
         $body = BodyToken::getBody();
-        $url_base = $this->urlBaseApi();
+        $url_base = $this->UrlBaseNorberApi();
 
         $comandToken = "autenticacao/autenticar";
         $urlCompleta = $url_base . $comandToken;

@@ -1,10 +1,41 @@
 #!/bin/bash
 
-# Data atual
-data_atual=$(date +"%d/%m/%Y")
+if [ $# -lt 2 ]; then
+    echo "Por favor, forneça ambas as datas: --start-date e --end-date"
+    echo "Uso: $0 <data_inicial> <data_final> [MesAnoReferencia]"
+    echo "Exemplo: $0 2025-01-01 2025-01-31 2025-01"
+    exit 1
+fi
 
-# Mesma data do mês passado
-data_mes_passado=$(date -d "-1 month" +"%d/%m/%Y")
+data_inicial="$1"
+data_final="$2"
+MesAnoReferencia="$3"
 
-echo "Data atual: $data_atual"
-echo "Mês passado: $data_mes_passado"
+# Validar intervalo máximo de 90 dias
+diff_dias=$(( ($(date -d "$data_final" +%s) - $(date -d "$data_inicial" +%s)) / 86400 ))
+
+if [ $diff_dias -gt 90 ]; then
+    echo "ERRO: O intervalo entre as datas não pode ultrapassar 90 dias"
+    echo "Data inicial: $data_inicial"
+    echo "Data final: $data_final"
+    echo "Dias de diferença: $diff_dias"
+    exit 1
+fi
+
+# Validar formato do MesAnoReferencia se foi fornecido
+if [ -n "$MesAnoReferencia" ] && [[ ! $MesAnoReferencia =~ ^[0-9]{4}-[0-9]{2}$ ]]; then
+    echo "ERRO: MesAnoReferencia '$MesAnoReferencia' deve estar no formato YYYY-MM (ex: 2025-01)"
+    exit 1
+fi
+
+docker exec norber_api_php php artisan norber:resgatar-token
+docker exec norber_api_php php artisan norber:retornar-ocorrencia-ausencia --start-date="$data_inicial" --end-date="$data_final" --Conceito="1" --CodigoExterno="8"
+docker exec norber_api_php php artisan norber:retornar-marcacoes --start-date="$data_inicial" --end-date="$data_final" --Conceito="1" --CodigoExterno="8"
+
+if [ -n "$MesAnoReferencia" ]; then
+    docker exec norber_api_php php artisan norber:listar-saldo --MesAnoReferencia="$MesAnoReferencia" --Conceito="1" --CodigoExterno="8"
+fi
+
+echo "Script executado com sucesso!"
+echo "Período: $data_inicial até $data_final ($diff_dias dias)"
+[ -n "$MesAnoReferencia" ] && echo "Mês de referência: $MesAnoReferencia"
