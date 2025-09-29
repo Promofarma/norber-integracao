@@ -67,51 +67,47 @@ class DadosFuncionarios extends Command
                 $data = json_decode($responseContent, true);
 
 
+
                 foreach ($data['Resultado'] as $funcionario) {
 
+                    if (stripos($funcionario['Situacao'], 'RESC') === false) {
 
-                    $gestores = $funcionario['Gestores'] ?? [];
 
-                    if (empty($gestores)) {
-                        FuncionarioGestor::updateOrCreate(
-
-                            [
-                                'DATA'      => date('Y-m-d'),
-                                'MATRICULA' => (int) $funcionario['Matricula'],
-                                'MATRICULA_GESTOR' => null, // garante unicidade
-                                'NOME'            => $funcionario['NomeFunc'],
-                                'CENTRO_CUSTO' => (int) $funcionario['CodCentroCusto'],
-                                'SITUACAO_CONTRATUAL' => $funcionario['Situacao'],
-                                'NOME_GESTOR'     => null,
-                                'PAGINA'          => (int) $data['Pagina'],
-                            ]
-                        );
-                    } else {
-                        foreach ($gestores as $gestor) {
+                        $gestores = $funcionario['Gestores'] ?? [];
+                        if (empty($gestores)) {
                             FuncionarioGestor::updateOrCreate(
                                 [
-                                    'DATA'             => date('Y-m-d'),
-                                    'MATRICULA'        => (int) $funcionario['Matricula'],
-                                    'MATRICULA_GESTOR' => $gestor['MatrGestor'] ?? null,
+                                    'DATA'      => date('Y-m-d'),
+                                    'MATRICULA' => (int) $funcionario['Matricula'],
+                                    'MATRICULA_GESTOR' => null, // garante unicidade
                                     'NOME'            => $funcionario['NomeFunc'],
                                     'CENTRO_CUSTO' => (int) $funcionario['CodCentroCusto'],
-                                    'SITUACAO_CONTRATUAL' => $funcionario['Situacao'],
-                                    'NOME_GESTOR'     => $gestor['NomeGestor'] ?? null,
+                                    'INDICE'        => null,
+                                    'NOME_GESTOR'     => null,
                                     'PAGINA'          => (int) $data['Pagina'],
                                 ]
                             );
+                        } else {
+                            foreach ($gestores as $indice => $gestor) {
+                                FuncionarioGestor::updateOrCreate(
+                                    [
+                                        'DATA'             => date('Y-m-d'),
+                                        'MATRICULA'        => (int) $funcionario['Matricula'],
+                                        'MATRICULA_GESTOR' => $gestor['MatrGestor'] ?? null,
+                                        'NOME'            => $funcionario['NomeFunc'],
+                                        'CENTRO_CUSTO' => (int) $funcionario['CodCentroCusto'],
+                                        'INDICE'    => $indice,
+                                        'NOME_GESTOR'     => $gestor['NomeGestor'] ?? null,
+                                        'PAGINA'          => (int) $data['Pagina'],
+                                    ]
+                                );
+                            }
                         }
                     }
                 }
-
-
-
-
                 if ($pagina % 10 === 0) {
                     sleep(1);
                 }
-
-                // quando chegar na última página, para o loop
                 if (isset($data['TotalPaginas']) && $pagina >= $data['TotalPaginas']) {
                     break;
                 }
@@ -120,8 +116,6 @@ class DadosFuncionarios extends Command
                 break;
             }
         }
-
-        return 0; // só aqui no final
-
+        return 0;
     }
 }

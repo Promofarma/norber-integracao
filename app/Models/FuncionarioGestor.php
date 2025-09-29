@@ -17,7 +17,7 @@ class FuncionarioGestor extends Model
         'NOME',
         'CENTRO_CUSTO',
         'MATRICULA_GESTOR',
-        'SITUACAO_CONTRATUAL',
+        'INDICE',
         'NOME_GESTOR',
         'PAGINA'
     ];
