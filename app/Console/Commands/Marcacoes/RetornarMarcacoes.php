@@ -55,7 +55,6 @@ class RetornarMarcacoes extends Command
             ->where('DATA', '<=', $endDate)
             ->max('PAGINA') ?? 0;
 
-
         for ($pagina = $ultimaPaginaProcessada + 1;; $pagina++) {
             $body = BodyRequisition::getBody($startDate, $endDate, $conceito, $codigoExterno, $pagina);
 
@@ -67,6 +66,8 @@ class RetornarMarcacoes extends Command
 
                 $responseContent = $response->getBody()->getContents();
                 $data = json_decode($responseContent, true);
+
+
 
                 $itens = $data['ListaDeFiltro'] ?? [];
                 $dadosCorrigidos = [];
@@ -131,7 +132,7 @@ class RetornarMarcacoes extends Command
                 $this->info("Página {$pagina} processada com sucesso. Total registros: " . count($dadosCorrigidos));
 
                 Logs::create([
-                    'DATA_EXECUCAO' => date('Y-m-d'),
+                    'DATA_EXECUCAO' => Carbon::now()->format('d-m-Y H:i:s.v'),
                     'COMANDO_EXECUTADO' =>  $command . ' - ' . json_encode($body),
                     'STATUS_COMANDO' => $response->getStatusCode(),
                     'TOTAL_REGISTROS' => count($dadosCorrigidos)

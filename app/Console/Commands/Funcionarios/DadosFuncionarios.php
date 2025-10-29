@@ -18,7 +18,7 @@ class DadosFuncionarios extends Command
 {
     // Modificado: Adicionar opções de data no signature
     protected $signature = 'norber:retornar-dados-funcionarios 
-                            {--start-date= : Data de início (formato: YYYY-MM-DD)}
+                            {--Start-date= : Data de início (formato: YYYY-MM-DD)}
                             {--Conceito= : Conceito (formato: inteiro)}
                             {--CodigoExterno= : Código externo (formato: string)}';
 
@@ -35,7 +35,7 @@ class DadosFuncionarios extends Command
     public function handle()
     {
         // variaveis que serão atribuidas no comando
-        $startDate = $this->option('start-date');
+        $startDate = $this->option('Start-date');
         $conceito = $this->option('Conceito');
         $codigoExterno = $this->option('CodigoExterno');
 
@@ -77,7 +77,7 @@ class DadosFuncionarios extends Command
                         if (empty($gestores)) {
                             FuncionarioGestor::updateOrCreate(
                                 [
-                                    'DATA'      => date('Y-m-d'),
+                                    'DATA'      => date('d-m-Y'),
                                     'MATRICULA' => (int) $funcionario['Matricula'],
                                     'MATRICULA_GESTOR' => null, // garante unicidade
                                     'NOME'            => $funcionario['NomeFunc'],
@@ -91,7 +91,7 @@ class DadosFuncionarios extends Command
                             foreach ($gestores as $indice => $gestor) {
                                 FuncionarioGestor::updateOrCreate(
                                     [
-                                        'DATA'             => date('Y-m-d'),
+                                        'DATA'             => date('d-m-Y'),
                                         'MATRICULA'        => (int) $funcionario['Matricula'],
                                         'MATRICULA_GESTOR' => $gestor['MatrGestor'] ?? null,
                                         'NOME'            => $funcionario['NomeFunc'],
@@ -104,6 +104,13 @@ class DadosFuncionarios extends Command
                             }
                         }
                     }
+
+                    Logs::create([
+                        'DATA_EXECUCAO' => Carbon::now()->format('d-m-Y H:i:s.v'),
+                        'COMANDO_EXECUTADO' =>  $command . ' - ' . json_encode($body),
+                        'STATUS_COMANDO' => $response->getStatusCode(),
+                        'TOTAL_REGISTROS' => count($funcionario)
+                    ]);
                 }
                 if ($pagina % 10 === 0) {
                     sleep(1);

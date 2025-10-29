@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Logs extends Model
 {
-    protected $table = 'NORBER_LOG_COMANDOS';
+    protected $table = 'RH.NORBER_LOG_COMANDOS';
 
     protected $primaryKey = 'NORBER_LOG_COMANDO';
 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EventosFolha extends Model
 {
-    protected $table = 'CODIGOS_EVENTOS_FOLHAS';
+    protected $table = 'RH.CODIGOS_EVENTOS_FOLHAS';
 
     protected $primaryKey = 'CODIGO_EVENTO_FOLHA';
 

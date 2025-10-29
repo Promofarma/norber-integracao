@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MarcacoesPontos extends Model
 {
-    protected $table = 'NORBER_MARCACOES_PONTOS';
+    protected $table = 'RH.NORBER_MARCACOES_PONTOS';
 
     protected $primaryKey = 'NORBER_MARCACAO_PONTO';
 

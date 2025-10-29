@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FuncionarioGestor extends Model
 {
-    protected $table = 'NORBER_FUNCIONARIOS_GESTORES';
+    protected $table = 'RH.NORBER_FUNCIONARIOS_GESTORES';
 
     protected $primaryKey = 'NORBER_FUNCIONARIO_GESTOR';
 

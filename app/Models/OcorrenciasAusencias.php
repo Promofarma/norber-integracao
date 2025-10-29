@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class OcorrenciasAusencias extends Model
 {
-    protected $table = 'NORBER_OCORRENCIAS_AUSENCIAS';
+    protected $table = 'RH.NORBER_OCORRENCIAS_AUSENCIAS';
 
     protected $primaryKey = 'NORBER_OCORRENCIA_AUSENCIA';
 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class BancoHorasPeriodo extends Model
 {
-    protected $table = 'NORBER_BANCOS_HORAS_PERIODOS';
+    protected $table = 'RH.NORBER_BANCOS_HORAS_PERIODOS';
 
     protected $primaryKey = 'NORBER_BANCO_HORA_PERIODO';
 

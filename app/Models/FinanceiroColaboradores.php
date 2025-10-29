@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FinanceiroColaboradores extends Model
 {
-    protected $table = 'LG_COLABORADORES_FINANCEIROS';
+    protected $table = 'RH.LG_COLABORADORES_FINANCEIROS';
 
     protected $primaryKey = 'LG_COLABORADORE_FINANCEIRO';
 

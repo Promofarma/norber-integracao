@@ -89,7 +89,6 @@ class RetornaOcorrenciaAusencia extends Command
                 }
                 try {
                     foreach ($resultado as $item) {
-
                         $dataOcorrencia = Carbon::createFromFormat('d/m/Y', $item['DataOcorrencia'])->format('Y-m-d');
                         $inicioExpediente = Carbon::createFromFormat('d/m/Y H:i', $item['Inicio'])->format('Y-m-d H:i:s');
                         $fimExpediente = Carbon::createFromFormat('d/m/Y H:i', $item['Fim'])->format('Y-m-d H:i:s');
@@ -105,11 +104,9 @@ class RetornaOcorrenciaAusencia extends Command
                             'PAGINA'            => $data['Pagina']
                         ]);
                     }
-
                     $this->info("Página {$pagina} processada com sucesso. Total registros: " . count($itens));
-
                     Logs::create([
-                        'DATA_EXECUCAO' => date('Y-m-d'),
+                        'DATA_EXECUCAO' => Carbon::now()->format('d-m-Y H:i:s.v'),
                         'COMANDO_EXECUTADO' =>  $command . ' - ' . json_encode($body),
                         'STATUS_COMANDO' => $response->getStatusCode(),
                         'TOTAL_REGISTROS' => count($itens)

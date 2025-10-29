@@ -2,10 +2,11 @@
 
 namespace App\Console\Commands\BancoDeHoras;
 
+use Carbon\Carbon;
 use App\Http\Headers;
 use GuzzleHttp\Client;
-use App\Console\UrlBaseNorber;
 use App\Http\BodyRequisition;
+use App\Console\UrlBaseNorber;
 use Illuminate\Console\Command;
 use App\Models\BancoHorasPeriodo;
 use App\Models\Logs; // <-- adicionado
@@ -58,7 +59,7 @@ class ListarSaldo extends Command
 
                 // grava log
                 Logs::create([
-                    'DATA_EXECUCAO' => date('Y-m-d'),
+                    'DATA_EXECUCAO' => Carbon::now()->format('d-m-Y H:i:s.v'),
                     'COMANDO_EXECUTADO' => $command . ' - ' . json_encode($body),
                     'STATUS_COMANDO'   => $response->getStatusCode(),
                     'TOTAL_REGISTROS'  => $total
