@@ -14,12 +14,12 @@ class FuncionarioGestor extends Model
         'NORBER_FUNCIONARIO_GESTOR',
         'DATA',
         'MATRICULA',
-        'NOME',
-        'CENTRO_CUSTO',
         'MATRICULA_GESTOR',
-        'INDICE',
         'NOME_GESTOR',
-        'PAGINA'
+        'CENTRO_CUSTO',
+        'UNIDADE_ORGANIZACIONAL'
+
+
     ];
 
     public $timestamps = false;
