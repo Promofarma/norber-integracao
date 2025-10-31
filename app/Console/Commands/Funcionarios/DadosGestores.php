@@ -21,12 +21,18 @@ class DadosGestores extends Command
     {
         $this->empresa = $this->option('Empresa');
 
+        $matriculasCadastradas = FuncionarioGestor::query()
+            ->pluck('MATRICULA');
+
+
         $matriculas = DB::connection('promofarma')
             ->table('dbo.LG_IMPORTA_FUNCIONARIOS')
             ->where('EMPRESA', $this->empresa)
-            // ->whereIn('MATRICULA', [3315, 6620, 5291, 6102, 5872, 4855, 7126, 5965, 3085])
+            ->whereNotIn('MATRICULA', $matriculasCadastradas)
             ->orderBy('MATRICULA')
             ->pluck('MATRICULA');
+
+
 
         $maxTipoSituacao = 4;
 

@@ -38,6 +38,7 @@ class RetonaSalarios extends Command
         $matriculas = DB::connection('promofarma')
             ->table('dbo.LG_IMPORTA_FUNCIONARIOS')
             ->where('EMPRESA', $this->empresa)
+
             ->orderBy('MATRICULA')
             ->select('MATRICULA', 'DATA_ADMISSAO')
             ->get();
@@ -84,7 +85,7 @@ class RetonaSalarios extends Command
     {
         $periodos = [];
         $dataInicio = Carbon::createFromDate($this->ano, $this->mes, 1);
-        $dataFim = Carbon::now();
+        $dataFim = Carbon::createFromDate($this->ano, $this->mes, 31);
         $current = $dataInicio->copy();
 
         while ($current->lessThanOrEqualTo($dataFim)) {
