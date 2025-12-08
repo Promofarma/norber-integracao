@@ -38,8 +38,8 @@ class ListarSaldo extends Command
         $url_base = $this->UrlBaseNorberApi();
         $command  = 'banco-de-horas/listar-saldo-v2';
 
-            $ultimaPaginaProcessada = BancoHorasPeriodo::where('MES_ANO_REFERENCIA', $MesAnoReferencia)
-            ->max('PAGINA') ?? 0;
+        $ultimaPaginaProcessada = BancoHorasPeriodo::where('MES_ANO_REFERENCIA', $MesAnoReferencia)
+        ->max('PAGINA') ?? 0;
 
         for ($pagina = $ultimaPaginaProcessada + 1;; $pagina++) {
             $body = BodyRequisition::getBodySaldo($MesAnoReferencia, $conceito, $codigoExterno, $pagina);
