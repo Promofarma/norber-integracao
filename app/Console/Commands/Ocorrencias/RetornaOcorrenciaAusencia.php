@@ -40,26 +40,22 @@ class RetornaOcorrenciaAusencia extends Command
             $this->error('Por favor, forneça ambas as datas: --start-date e --end-date');
             return 1;
         }
-        if (
-            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) ||
-            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)
-        ) {
-            $this->error('Formato de data inválido. Use YYYY-MM-DD');
-            return 1;
-        }
+        
 
         $client = new Client();
         $headers = Headers::getHeaders();
         $url_base = $this->UrlBaseNorberApi();
         $command = 'Ocorrencia/RetornaOcorrenciaAusencia';
-        $ultimaPaginaProcessada = OcorrenciasAusencias::where('DATA_OCORRENCIA', '>=', $startDate)
-            ->where('DATA_OCORRENCIA', '<=',  $endDate)
+        $ultimaPaginaProcessada = OcorrenciasAusencias::where('DATA_OCORRENCIA', '>=', date_format(Carbon::parse($startDate), 'd-m-Y') )
+            ->where('DATA_OCORRENCIA', '<=',  date_format(Carbon::parse($endDate), 'd-m-Y') )
             ->max('PAGINA') ?? 0;
 
 
         for ($pagina = $ultimaPaginaProcessada + 1;; $pagina++) {
 
             $body = BodyRequisition::getBody($startDate, $endDate, $conceito, $codigoExterno, $pagina);
+
+            
 
             try {
                 $response = $client->post($url_base . $command, [
@@ -95,9 +91,9 @@ class RetornaOcorrenciaAusencia extends Command
 
                         OcorrenciasAusencias::UpdateOrCreate([
                             'MATRICULA'         => $item['Matricula'],
-                            'DATA_OCORRENCIA'   => $dataOcorrencia,
-                            'INICIO_EXPEDIENTE' => $inicioExpediente,
-                            'FIM_EXPEDIENTE'    => $fimExpediente,
+                            'DATA_OCORRENCIA'   => date_format(Carbon::parse($dataOcorrencia), 'd-m-Y'),
+                            'INICIO_EXPEDIENTE' => date_format(Carbon::parse($inicioExpediente), 'd-m-Y H:i:s') ,
+                            'FIM_EXPEDIENTE'    => date_format(Carbon::parse($fimExpediente), 'd-m-Y H:i:s') ,
                             'DESCRICAO'         => $item['Descricao'],
                             'JUSTIFICATIVA'     => $item['Justificativa'],
                             'QUANTIDADE_HORAS'  => $item['QtdeHoras'],
