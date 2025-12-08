@@ -114,15 +114,15 @@ class RetornaOcorrenciaAusencia extends Command
 
 
                     if (isset($data['TotalPaginas']) && $pagina >= $data['TotalPaginas']) {
-                        break;
+                        self::SUCCESS;
                     }
                 } catch (\Throwable $th) {
                     $this->error("Erro ao inserir dados: " . $th->getMessage());
-                    return 1;
+                    return self::FAILURE;
                 }
             } catch (\Exception $e) {
                 $this->error('Erro na requisição: ' . $e->getMessage());
-                return 1;
+                return self::FAILURE;
             }
         }
         return 0;
