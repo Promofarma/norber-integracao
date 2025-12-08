@@ -52,8 +52,6 @@ class ListarSaldo extends Command
 
                 $data = json_decode($response->getBody()->getContents(), true);
 
-                if (empty($data['ListaDeFiltro'])) break;
-
                 // processa e conta registros
                 $total = $this->processarPagina($data, $pagina);
 
@@ -67,8 +65,12 @@ class ListarSaldo extends Command
 
                 if ($pagina % 10 === 0) sleep(1);
 
-                if (isset($data['TotalPaginas']) && $pagina >= $data['TotalPaginas']) 
-                 return 0;
+                if (isset($data['TotalPaginas']) && $pagina >= $data['TotalPaginas'])  {
+
+                    return self::SUCCESS;
+
+                }
+                 
 
             } catch (\GuzzleHttp\Exception\RequestException $e) {
                 
