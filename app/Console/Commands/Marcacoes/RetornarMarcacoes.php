@@ -145,12 +145,12 @@ class RetornarMarcacoes extends Command
 
                 // quando chegar na última página, para o loop
                 if (isset($data['TotalPaginas']) && $pagina >= $data['TotalPaginas']) {
-                    break;
+                    dd(self::SUCCESS);
                 }
             } catch (\Exception $e) {
                 $this->error("Erro na página {$pagina}: " . $e->getMessage());
-                break;
-            }
+                return self::FAILURE;
+             }
         }
 
         return 0; // só aqui no final
