@@ -46,15 +46,12 @@ class RetornaOcorrenciaAusencia extends Command
         $headers = Headers::getHeaders();
         $url_base = $this->UrlBaseNorberApi();
         $command = 'Ocorrencia/RetornaOcorrenciaAusencia';
-        $ultimaPaginaProcessada = OcorrenciasAusencias::where('DATA_OCORRENCIA', '>=', date_format(Carbon::parse($startDate), 'd-m-Y') )
-            ->where('DATA_OCORRENCIA', '<=',  date_format(Carbon::parse($endDate), 'd-m-Y') )
-            ->max('PAGINA') ?? 0;
 
+        OcorrenciasAusencias::whereBetween('DATA_OCORRENCIA', [date_format(Carbon::parse($startDate), 'd-m-Y'), date_format(Carbon::parse($endDate), 'd-m-Y')])->delete();
 
-        for ($pagina = $ultimaPaginaProcessada + 1;; $pagina++) {
+        for ($pagina = 1;; $pagina++) {
 
             $body = BodyRequisition::getBody($startDate, $endDate, $conceito, $codigoExterno, $pagina);
-
             
 
             try {

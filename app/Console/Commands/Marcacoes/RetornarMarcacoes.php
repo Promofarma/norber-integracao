@@ -50,12 +50,10 @@ class RetornarMarcacoes extends Command
         $url_base = $this->UrlBaseNorberApi();
         $command = 'marcacao/RetornaMarcacoes';
 
+        MarcacoesPontos::whereBetween('DATA', [date_format(Carbon::parse($startDate), 'd-m-Y'), date_format(Carbon::parse($endDate), 'd-m-Y')])->delete();
 
-        $ultimaPaginaProcessada = MarcacoesPontos::where('DATA', '>=', $startDate)
-            ->where('DATA', '<=', $endDate)
-            ->max('PAGINA') ?? 0;
 
-        for ($pagina = $ultimaPaginaProcessada + 1;; $pagina++) {
+        for ($pagina =  1;; $pagina++) {
             $body = BodyRequisition::getBody($startDate, $endDate, $conceito, $codigoExterno, $pagina);
 
             try {
