@@ -22,6 +22,8 @@ class DadosGestores extends Command
         $this->empresa = $this->option('Empresa');
 
         $matriculasCadastradas = FuncionarioGestor::query()
+            ->whereMonth('DATA', date('m')) 
+            ->whereYear('DATA', date('Y'))
             ->pluck('MATRICULA');
 
 
