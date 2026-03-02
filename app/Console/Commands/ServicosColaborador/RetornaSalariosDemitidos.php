@@ -61,7 +61,6 @@ class RetornaSalariosDemitidos extends Command
                         ->exists();
 
             if ($exists) {
-                 $this->info("\n Matricula: {$matricula->MATRICULA} já estava processada com sucesso.");
                 continue;
             } else {
 
