@@ -11,10 +11,10 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Models\FinanceiroColaboradores;
 
-class RetornaSalariosDemitidos extends Command
+class RetornaBeneficios extends Command
 {
-    protected $signature = 'lg:consultar-demitidos-salario {--Pagina=} {--Empresa=} ';
-    protected $description = 'Consulta colaboradores desligados na API LG via SOAP';
+    protected $signature = 'lg:consultar-beneficios {--Empresa=} {--Mes=} {--Ano=}';
+    protected $description = 'Consulta benefícios dos colaboradores na API LG via SOAP';
 
     protected $pagina;
     protected $empresa;
@@ -23,56 +23,69 @@ class RetornaSalariosDemitidos extends Command
 
     public function handle()
     {
-        $this->pagina = $this->option('Pagina');
+        $this->pagina = 29; // CÓDIGOS DE BENEFÍCIOS
         $this->empresa = $this->option('Empresa');
+        $this->mes = $this->option('Mes');
+        $this->ano = $this->option('Ano');
 
-   
+        if (empty($this->mes) || empty($this->ano)) {
+            $this->error('É necessário informar Mês e Ano de início');
+            return 1;
+        }
 
+       
         $matriculas = DB::connection('promofarma')
-            ->table('dbo.lg_importa_funcionarios_demitidos')
+            ->table('dbo.LG_IMPORTA_FUNCIONARIOS')
             ->where('EMPRESA', $this->empresa)
+            ->where('matricula', 3082)
             ->orderBy('MATRICULA')
-            ->select(
-                'MATRICULA',
-                'DATA_ADMISSAO',
-                DB::RAW('MAX(DATA_RESCISAO) AS DATA_RESCISAO'),
-                DB::RAW('MONTH(MAX(DATA_RESCISAO)) AS MES'),
-                DB::RAW('YEAR(MAX(DATA_RESCISAO)) AS ANO'),
-            )
-            ->groupBy('MATRICULA', 'DATA_ADMISSAO')
-            ->where('DATA_RESCISAO', '>=', '2025-01-01')
-            ->orderBy('DATA_RESCISAO', 'asc')
+            ->select('MATRICULA', 'DATA_ADMISSAO')
             ->get();
 
-        $totalMatriculas = count($matriculas);
-        $this->info("Total de matrículas encontradas: {$totalMatriculas}");
+      
+         foreach ($matriculas as $matricula) {
+                $this->info("\nProcessando matrícula: {$matricula->MATRICULA} com a pagina {$this->pagina}");
+                $exists =  DB::connection('sqlsrv')
+                    ->table('RH.LG_COLABORADORES_FINANCEIROS')
+                    ->where('MATRICULA', $matricula->MATRICULA)
+                     ->where('mes', $this->mes)
+                     ->where('ano', $this->ano)
+                     ->where('TIPO_PAGINA', $this->pagina)
+                    ->exists();
+                if ($exists) {
+                    continue;
+                } else {
+                    $this->buscarFuncionarios($matricula->MATRICULA, $this->mes, $this->ano, $this->pagina);
+                    sleep(1);
+                }
+            }
 
-        foreach ($matriculas as $matricula) {
-            $this->info("\nProcessando matrícula: {$matricula->MATRICULA}");
-            $this->mes = $matricula->MES;
-            $this->ano = $matricula->ANO;
-
-            $exists =  DB::connection('sqlsrv')
-                        ->table('RH.LG_COLABORADORES_FINANCEIROS')
-                        ->where('MATRICULA', $matricula->MATRICULA)
-                        ->where('MES', $matricula->MES)
-                        ->where('ANO', $matricula->ANO)
-                        ->where('TIPO_PAGINA', $this->pagina)
-                        ->exists();
-
-            if ($exists) {
-                continue;
-            } else {
-             $this->buscarFuncionarios($matricula->MATRICULA, $matricula->MES, $matricula->ANO);
-             $this->info("\n Matricula: {$matricula->MATRICULA} processada com sucesso.");
-            sleep(1);
-            }           
-          
-        }
+     
         $this->info("\nProcesso concluído.");
     }
 
+    private function gerarPeriodos(): array
+    {
+        $periodos = [];
+        $dataInicio = Carbon::createFromDate($this->ano, $this->mes, 1);
+        $dataFim = Carbon::createFromDate($this->ano, $this->mes, 31);
+        $current = $dataInicio->copy();
 
+        while ($current->lessThanOrEqualTo($dataFim)) {
+            $periodos[] = [
+                'mes' => $current->month,
+                'ano' => $current->year
+            ];
+            $current->addMonth();
+        }
+
+        $this->info("Períodos a processar: " . count($periodos));
+        foreach ($periodos as $periodo) {
+            $this->info(" - {$periodo['mes']}/{$periodo['ano']}");
+        }
+
+        return $periodos;
+    }
 
     public function buscarFuncionarios($matricula, $mes, $ano)
     {
@@ -116,9 +129,6 @@ class RetornaSalariosDemitidos extends Command
             ]);
 
             $body = $response->getBody()->getContents();
-
-
-
             libxml_use_internal_errors(true);
             $dom = new DOMDocument();
             $dom->loadXML($body);
@@ -150,7 +160,6 @@ class RetornaSalariosDemitidos extends Command
                 ];
             }
 
-
             foreach ($resultados as $resultado) {
                 $registro = FinanceiroColaboradores::updateOrCreate(
                     [
@@ -172,6 +181,8 @@ class RetornaSalariosDemitidos extends Command
                 if ($registro->wasRecentlyCreated) {
                     $registrosInseridos++;
                 }
+
+                 
             }
 
             if ($registrosInseridos > 0) {

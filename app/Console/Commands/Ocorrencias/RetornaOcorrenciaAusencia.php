@@ -30,6 +30,8 @@ class RetornaOcorrenciaAusencia extends Command
     public function handle()
     {
 
+     
+
         $startDate = $this->option('start-date');
         $endDate = $this->option('end-date');
         $conceito = $this->option('Conceito');
@@ -61,6 +63,7 @@ class RetornaOcorrenciaAusencia extends Command
                 ]);
 
                 $responseContent = $response->getBody()->getContents();
+
                 $data = json_decode($responseContent, true);
                 $itens = $data['ListaDeFiltro'] ?? [];
                 $resultado = [];
@@ -86,16 +89,22 @@ class RetornaOcorrenciaAusencia extends Command
                         $inicioExpediente = Carbon::createFromFormat('d/m/Y H:i', $item['Inicio'])->format('Y-m-d H:i:s');
                         $fimExpediente = Carbon::createFromFormat('d/m/Y H:i', $item['Fim'])->format('Y-m-d H:i:s');
 
-                        OcorrenciasAusencias::UpdateOrCreate([
+                        OcorrenciasAusencias::UpdateOrCreate(
+                        [
                             'MATRICULA'         => $item['Matricula'],
                             'DATA_OCORRENCIA'   => date_format(Carbon::parse($dataOcorrencia), 'd-m-Y'),
-                            'INICIO_EXPEDIENTE' => date_format(Carbon::parse($inicioExpediente), 'd-m-Y H:i:s') ,
-                            'FIM_EXPEDIENTE'    => date_format(Carbon::parse($fimExpediente), 'd-m-Y H:i:s') ,
                             'DESCRICAO'         => $item['Descricao'],
                             'JUSTIFICATIVA'     => $item['Justificativa'],
+
+                        ],
+                        [
+                            'INICIO_EXPEDIENTE' => date_format(Carbon::parse($inicioExpediente), 'd-m-Y H:i:s') ,
+                            'FIM_EXPEDIENTE'    => date_format(Carbon::parse($fimExpediente), 'd-m-Y H:i:s') ,
                             'QUANTIDADE_HORAS'  => $item['QtdeHoras'],
                             'PAGINA'            => $data['Pagina']
-                        ]);
+                        ]                
+
+                        );
                     }
                     $this->info("Página {$pagina} processada com sucesso. Total registros: " . count($itens));
                     Logs::create([

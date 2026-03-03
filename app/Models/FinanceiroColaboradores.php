@@ -19,7 +19,8 @@ class FinanceiroColaboradores extends Model
         'CODIGO_EVENTO',
         'DATA_REGISTRO',
         'MES',
-        'ANO'
+        'ANO',
+        'TIPO_PAGINA'
     ];
 
     public $timestamps = false;

@@ -110,12 +110,7 @@ class RetornarMarcacoes extends Command
                         $marcacoes[] = $dado['Marcacoes' . $i];
                         $i++;
                     }
-
-
-
                     foreach ($marcacoes as $marcacao) {
-
-
                         MarcacoesPontos::updateOrCreate([
                             'DATA' => Carbon::createFromFormat('d/m/Y', $dado['Data'])->format('Y-m-d'),
                             'MATRICULA' => $dado['Matricula'],
@@ -141,7 +136,7 @@ class RetornarMarcacoes extends Command
                     sleep(1);
                 }
 
-                // quando chegar na última página, para o loop
+             
                 if (isset($data['TotalPaginas']) && $pagina >= $data['TotalPaginas']) {
                     return self::SUCCESS;
                 }
@@ -151,7 +146,7 @@ class RetornarMarcacoes extends Command
              }
         }
 
-        return 0; // só aqui no final
+        return 0; 
 
     }
 }

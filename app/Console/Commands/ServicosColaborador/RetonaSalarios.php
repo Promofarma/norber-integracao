@@ -4,12 +4,12 @@ namespace App\Console\Commands\ServicosColaborador;
 
 use DOMXPath;
 use DOMDocument;
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use App\Http\LGheaders;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Models\FinanceiroColaboradores;
-use Carbon\Carbon;
 
 class RetonaSalarios extends Command
 {
@@ -33,51 +33,34 @@ class RetonaSalarios extends Command
             return 1;
         }
 
-        $periodos = $this->gerarPeriodos();
-
+       
         $matriculas = DB::connection('promofarma')
             ->table('dbo.LG_IMPORTA_FUNCIONARIOS')
             ->where('EMPRESA', $this->empresa)
-
+           
             ->orderBy('MATRICULA')
             ->select('MATRICULA', 'DATA_ADMISSAO')
             ->get();
 
-        $totalMatriculas = count($matriculas);
-        $this->info("Total de matrículas encontradas: {$totalMatriculas}");
-
-        $bar = $this->output->createProgressBar($totalMatriculas * count($periodos));
-        $bar->start();
-
-        foreach ($matriculas as $matricula) {
-            $this->info("\nProcessando matrícula: {$matricula->MATRICULA}");
-
-            foreach ($periodos as $periodo) {
-
-                $dataAdmissao = Carbon::parse($matricula->DATA_ADMISSAO);
-                $periodoDate = Carbon::createFromDate($periodo['ano'], $periodo['mes'], 1);
-
-                if ($dataAdmissao->lessThanOrEqualTo($periodoDate->endOfMonth())) {
-
-                    $matriculasFinanceiro = DB::connection('sqlsrv')
-                        ->table('RH.LG_COLABORADORES_FINANCEIROS')
-                        ->where('mes', $periodo['mes'])
-                        ->where('ano', $periodo['ano'])
-                        ->distinct()
-                        ->pluck('MATRICULA')
-                        ->toArray();
-
-                    if (!in_array($matricula->MATRICULA, $matriculasFinanceiro)) {
-                        $this->buscarFuncionarios($matricula->MATRICULA, $periodo['mes'], $periodo['ano']);
-                        sleep(1);
-                    }
+      
+         foreach ($matriculas as $matricula) {
+                $this->info("\nProcessando matrícula: {$matricula->MATRICULA} com a pagina {$this->pagina}");
+                $exists =  DB::connection('sqlsrv')
+                    ->table('RH.LG_COLABORADORES_FINANCEIROS')
+                    ->where('MATRICULA', $matricula->MATRICULA)
+                     ->where('mes', $this->mes)
+                     ->where('ano', $this->ano)
+                     ->where('TIPO_PAGINA', $this->pagina)
+                    ->exists();
+                if ($exists) {
+                    continue;
+                } else {
+                    $this->buscarFuncionarios($matricula->MATRICULA, $this->mes, $this->ano, $this->pagina);
+                    sleep(1);
                 }
-
-                $bar->advance();
             }
-        }
 
-        $bar->finish();
+     
         $this->info("\nProcesso concluído.");
     }
 
@@ -153,8 +136,8 @@ class RetonaSalarios extends Command
             $xpath = new DOMXPath($dom);
             $xpath->registerNamespace('a', 'lg.com.br/api/dto/v1');
 
-            $matriculaNode = $xpath->query('//a:Matricula')->item(0)?->nodeValue ?? '';
-            $nomeNode = $xpath->query('//a:Nome')->item(0)?->nodeValue ?? '';
+            $matriculaNode = $xpath->query('//a:Matricula')->item(0)->nodeValue ?? '';
+            $nomeNode = $xpath->query('//a:Nome')->item(0)->nodeValue ?? '';
 
             if (empty($matriculaNode) || empty($nomeNode)) return;
 
@@ -163,9 +146,9 @@ class RetonaSalarios extends Command
             $registrosInseridos = 0;
 
             foreach ($eventos as $evento) {
-                $descricao = $xpath->query('a:Descricao', $evento)->item(0)?->nodeValue ?? '';
-                $valor = $xpath->query('a:Valor', $evento)->item(0)?->nodeValue ?? '';
-                $codigo = $xpath->query('a:Codigo', $evento)->item(0)?->nodeValue ?? '';
+                $descricao = $xpath->query('a:Descricao', $evento)->item(0)->nodeValue ?? '';
+                $valor = $xpath->query('a:Valor', $evento)->item(0)->nodeValue ?? '';
+                $codigo = $xpath->query('a:Codigo', $evento)->item(0)->nodeValue ?? '';
 
                 if (empty($descricao) || empty($valor)) continue;
 
@@ -191,13 +174,15 @@ class RetonaSalarios extends Command
                         'CODIGO_EVENTO' => $resultado['codigo_evento'],
                         'DATA_REGISTRO' => now()->format('d-m-Y'),
                         'EMPRESA' => $this->empresa,
-                        'PAGINA' => $this->pagina
+                        'TIPO_PAGINA' => $this->pagina
                     ]
                 );
 
                 if ($registro->wasRecentlyCreated) {
                     $registrosInseridos++;
                 }
+
+                 
             }
 
             if ($registrosInseridos > 0) {

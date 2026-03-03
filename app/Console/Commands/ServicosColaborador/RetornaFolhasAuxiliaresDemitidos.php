@@ -11,10 +11,10 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Models\FinanceiroColaboradores;
 
-class RetornaSalariosDemitidos extends Command
+class RetornaFolhasAuxiliaresDemitidos extends Command
 {
-    protected $signature = 'lg:consultar-demitidos-salario {--Pagina=} {--Empresa=} ';
-    protected $description = 'Consulta colaboradores desligados na API LG via SOAP';
+    protected $signature = 'lg:consultar-outras-folhas-demitidos  {--Empresa=} {--Mes=} {--Ano=}';
+    protected $description = 'Consulta colaboradores na API LG via SOAP';
 
     protected $pagina;
     protected $empresa;
@@ -23,59 +23,64 @@ class RetornaSalariosDemitidos extends Command
 
     public function handle()
     {
-        $this->pagina = $this->option('Pagina');
         $this->empresa = $this->option('Empresa');
+        $this->mes = $this->option('Mes');
+        $this->ano = $this->option('Ano');
 
-   
+        if (empty($this->mes) || empty($this->ano)) {
+            $this->error('É necessário informar Mês e Ano de início');
+            return 1;
+        }
+
+        $paginas = [
+
+            '4' => '13 SALARIO',    
+            '7' => 'RESCISAO COMP NO MES',
+            '8' => 'RESCISAO COMP FORA DO MES',
+            '12' => 'RESCISAO ESTAGIARIO'
+        ];
+
+
 
         $matriculas = DB::connection('promofarma')
-            ->table('dbo.lg_importa_funcionarios_demitidos')
+            ->table('dbo.LG_IMPORTA_FUNCIONARIOS_DEMITIDOS')
             ->where('EMPRESA', $this->empresa)
+            ->whereMonth('DATA_RESCISAO', $this->mes)
+            ->whereYear('DATA_RESCISAO', $this->ano)
             ->orderBy('MATRICULA')
-            ->select(
-                'MATRICULA',
-                'DATA_ADMISSAO',
-                DB::RAW('MAX(DATA_RESCISAO) AS DATA_RESCISAO'),
-                DB::RAW('MONTH(MAX(DATA_RESCISAO)) AS MES'),
-                DB::RAW('YEAR(MAX(DATA_RESCISAO)) AS ANO'),
-            )
-            ->groupBy('MATRICULA', 'DATA_ADMISSAO')
-            ->where('DATA_RESCISAO', '>=', '2025-01-01')
-            ->orderBy('DATA_RESCISAO', 'asc')
+            ->select('MATRICULA', 'DATA_ADMISSAO')
             ->get();
 
-        $totalMatriculas = count($matriculas);
-        $this->info("Total de matrículas encontradas: {$totalMatriculas}");
+        
 
-        foreach ($matriculas as $matricula) {
-            $this->info("\nProcessando matrícula: {$matricula->MATRICULA}");
-            $this->mes = $matricula->MES;
-            $this->ano = $matricula->ANO;
-
-            $exists =  DB::connection('sqlsrv')
-                        ->table('RH.LG_COLABORADORES_FINANCEIROS')
-                        ->where('MATRICULA', $matricula->MATRICULA)
-                        ->where('MES', $matricula->MES)
-                        ->where('ANO', $matricula->ANO)
-                        ->where('TIPO_PAGINA', $this->pagina)
-                        ->exists();
-
-            if ($exists) {
-                continue;
-            } else {
-             $this->buscarFuncionarios($matricula->MATRICULA, $matricula->MES, $matricula->ANO);
-             $this->info("\n Matricula: {$matricula->MATRICULA} processada com sucesso.");
-            sleep(1);
-            }           
-          
+        foreach ($paginas as $key => $value) {
+            foreach ($matriculas as $matricula) {
+                $this->info("\nProcessando matrícula: {$matricula->MATRICULA} com a pagina {$key} - {$value}");
+                $exists =  DB::connection('sqlsrv')
+                    ->table('RH.LG_COLABORADORES_FINANCEIROS')
+                    ->where('MATRICULA', $matricula->MATRICULA)
+                    ->where('mes', $this->mes)
+                    ->where('ano', $this->ano)
+                    ->where('TIPO_PAGINA', $key)
+                    ->exists();
+                if ($exists) {
+                    continue;
+                } else {
+                    $this->buscarFuncionarios($matricula->MATRICULA, $this->mes, $this->ano, $key);
+                    sleep(1);
+                }
+            }
         }
+
         $this->info("\nProcesso concluído.");
     }
 
 
 
-    public function buscarFuncionarios($matricula, $mes, $ano)
+    public function buscarFuncionarios($matricula, $mes, $ano, $pagina)
     {
+
+
         $endpoint = 'https://prd-api1.lg.com.br/v1/servicoderecibodepagamento';
         $headers = (new LGheaders())->getHeaders();
 
@@ -91,7 +96,7 @@ class RetornaSalariosDemitidos extends Command
                                 </v11:Empresa>
                                 <v11:Matricula>{$matricula}</v11:Matricula>
                             </v11:Colaborador>
-                            <v11:FolhaDePagamentoCodigo>{$this->pagina}</v11:FolhaDePagamentoCodigo>
+                            <v11:FolhaDePagamentoCodigo>{$pagina}</v11:FolhaDePagamentoCodigo>
                             <v11:Referencia>
                                 <v11:Ano>{$ano}</v11:Ano>
                                 <v11:Mes>{$mes}</v11:Mes>
@@ -116,8 +121,6 @@ class RetornaSalariosDemitidos extends Command
             ]);
 
             $body = $response->getBody()->getContents();
-
-
 
             libxml_use_internal_errors(true);
             $dom = new DOMDocument();
@@ -150,14 +153,14 @@ class RetornaSalariosDemitidos extends Command
                 ];
             }
 
-
             foreach ($resultados as $resultado) {
                 $registro = FinanceiroColaboradores::updateOrCreate(
                     [
                         'MATRICULA' => $matriculaNode,
                         'DESCRICAO' => $resultado['descricao'],
                         'MES' => $mes,
-                        'ANO' => $ano
+                        'ANO' => $ano,
+                        'TIPO_PAGINA' => $pagina
                     ],
                     [
                         'NOME' => $nomeNode,
@@ -165,7 +168,7 @@ class RetornaSalariosDemitidos extends Command
                         'CODIGO_EVENTO' => $resultado['codigo_evento'],
                         'DATA_REGISTRO' => now()->format('d-m-Y'),
                         'EMPRESA' => $this->empresa,
-                        'TIPO_PAGINA' => $this->pagina
+                        'TIPO_PAGINA' => $pagina
                     ]
                 );
 
