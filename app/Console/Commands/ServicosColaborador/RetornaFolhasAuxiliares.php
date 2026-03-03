@@ -52,7 +52,7 @@ class RetornaFolhasAuxiliares extends Command
             ->where('EMPRESA', $this->empresa)
             ->orderBy('MATRICULA')
             ->select('MATRICULA', 'DATA_ADMISSAO')
-            ->whereIn('MATRICULA', [3082])
+       //     ->whereIn('MATRICULA', [3082])
             ->get();
 
 

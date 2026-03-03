@@ -37,7 +37,7 @@ class RetornaBeneficios extends Command
         $matriculas = DB::connection('promofarma')
             ->table('dbo.LG_IMPORTA_FUNCIONARIOS')
             ->where('EMPRESA', $this->empresa)
-            ->where('matricula', 3082)
+     //       ->where('matricula', 3082)
             ->orderBy('MATRICULA')
             ->select('MATRICULA', 'DATA_ADMISSAO')
             ->get();
