@@ -13,7 +13,7 @@ use App\Models\FinanceiroColaboradores;
 
 class RetonaSalarios extends Command
 {
-    protected $signature = 'lg:consultar-salario {--Pagina=} {--Empresa=} {--Mes=} {--Ano=}';
+    protected $signature = 'lg:consultar-salario  {--Pagina=} {--Empresa=} {--Mes=} {--Ano=}';
     protected $description = 'Consulta colaboradores na API LG via SOAP';
 
     protected $pagina;
@@ -37,27 +37,15 @@ class RetonaSalarios extends Command
         $matriculas = DB::connection('promofarma')
             ->table('dbo.LG_IMPORTA_FUNCIONARIOS')
             ->where('EMPRESA', $this->empresa)
-           
             ->orderBy('MATRICULA')
             ->select('MATRICULA', 'DATA_ADMISSAO')
             ->get();
 
-      
+
          foreach ($matriculas as $matricula) {
                 $this->info("\nProcessando matrícula: {$matricula->MATRICULA} com a pagina {$this->pagina}");
-                $exists =  DB::connection('sqlsrv')
-                    ->table('RH.LG_COLABORADORES_FINANCEIROS')
-                    ->where('MATRICULA', $matricula->MATRICULA)
-                     ->where('mes', $this->mes)
-                     ->where('ano', $this->ano)
-                     ->where('TIPO_PAGINA', $this->pagina)
-                    ->exists();
-                if ($exists) {
-                    continue;
-                } else {
-                    $this->buscarFuncionarios($matricula->MATRICULA, $this->mes, $this->ano, $this->pagina);
-                    sleep(1);
-                }
+                $this->buscarFuncionarios($matricula->MATRICULA, $this->mes, $this->ano, $this->pagina);
+                sleep(1);
             }
 
      
@@ -129,6 +117,8 @@ class RetonaSalarios extends Command
             ]);
 
             $body = $response->getBody()->getContents();
+
+         
             libxml_use_internal_errors(true);
             $dom = new DOMDocument();
             $dom->loadXML($body);
@@ -160,13 +150,17 @@ class RetonaSalarios extends Command
                 ];
             }
 
+       
+
             foreach ($resultados as $resultado) {
                 $registro = FinanceiroColaboradores::updateOrCreate(
                     [
                         'MATRICULA' => $matriculaNode,
                         'DESCRICAO' => $resultado['descricao'],
                         'MES' => $mes,
-                        'ANO' => $ano
+                        'ANO' => $ano,
+                        'CODIGO_EVENTO' => $resultado['codigo_evento'],
+                        'TIPO_PAGINA' => $this->pagina
                     ],
                     [
                         'NOME' => $nomeNode,
