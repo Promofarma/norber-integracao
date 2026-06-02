@@ -3,9 +3,11 @@
 namespace App\Console\Commands\Afastamento;
 
 use App\Http\LGheaders;
+use App\Mail\AfastamentoAlerta;
 use App\Models\LancamentosAtestados as LancamentosAtestadosModel;
 use GuzzleHttp\Client;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
 
 class LancarAfastamentos extends Command
 {
@@ -34,17 +36,20 @@ class LancarAfastamentos extends Command
 
 
 
- foreach ($afastamentos as $afastamento) {
-    $dataOcorrencia    = date('Y-m-d', strtotime($afastamento->DATA_OCORRENCIA));
-    $dataFim           = $afastamento->DATA_FIM ? date('Y-m-d', strtotime($afastamento->DATA_FIM)) : null;
-    $dataFimXml        = $dataFim ? "<v1:DataFim>{$dataFim}</v1:DataFim>" : '';
+        $sucessos = [];
+        $erros = [];
 
-    $cid               = $afastamento->CID_FOLHA ?? 0;
-    $diasAuxilio       = $afastamento->DIAS_AUXILIO_DOENCA ?? 0;
-    $doencaTrabalho    = $afastamento->DOENCA_RELACIONADA_TRABALHO ?? 0;
-    $semPrevisao       = $afastamento->SEM_PREVISAO_RETORNO ?? 0;
+        foreach ($afastamentos as $afastamento) {
+            $dataOcorrencia    = date('Y-m-d', strtotime($afastamento->DATA_OCORRENCIA));
+            $dataFim           = $afastamento->DATA_FIM ? date('Y-m-d', strtotime($afastamento->DATA_FIM)) : null;
+            $dataFimXml        = $dataFim ? "<v1:DataFim>{$dataFim}</v1:DataFim>" : '';
 
-    $soapBody = <<<XML
+            $cid               = $afastamento->CID_FOLHA ?? 0;
+            $diasAuxilio       = $afastamento->DIAS_AUXILIO_DOENCA ?? 0;
+            $doencaTrabalho    = $afastamento->DOENCA_RELACIONADA_TRABALHO ?? 0;
+            $semPrevisao       = $afastamento->SEM_PREVISAO_RETORNO ?? 0;
+
+            $soapBody = <<<XML
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dto="lg.com.br/svc/dto" xmlns:v2="lg.com.br/api/v2" xmlns:v1="lg.com.br/api/dto/v1">
 
             {$headers}
@@ -80,8 +85,6 @@ class LancarAfastamentos extends Command
         </soapenv:Envelope>
         XML;
 
-
-
             try {
                 $response = $client->post($endpoint, [
                     'headers' => [
@@ -94,7 +97,6 @@ class LancarAfastamentos extends Command
 
                 $body = $response->getBody()->getContents();
 
-
                 libxml_use_internal_errors(true);
                 $xml = simplexml_load_string($body);
                 libxml_clear_errors();
@@ -105,8 +107,10 @@ class LancarAfastamentos extends Command
                 $tipo = (string) $xml->xpath('//a:ListaDeRetorno//a:Tipo')[0];
 
                 if ($tipo === '1') {
-                    $erro = (string) $xml->xpath('//a:ListaDeRetorno//a:Mensagens/b:string')[0];
-                    return $this->error("Erro ao lançar afastamento: {$erro}");
+                    $mensagem = (string) $xml->xpath('//a:ListaDeRetorno//a:Mensagens/b:string')[0];
+                    $this->error("Erro ao lançar afastamento: {$mensagem}");
+                    $erros[] = "Matrícula {$afastamento->MATRICULA} / Empresa {$afastamento->EMPRESA} / {$dataOcorrencia}: {$mensagem}";
+                    continue;
                 }
 
                 LancamentosAtestadosModel::where(
@@ -115,10 +119,18 @@ class LancarAfastamentos extends Command
                 )->update(['ENVIADO_FOLHA' => 'S']);
 
                 $this->info('Afastamento lançado com sucesso!');
+                $sucessos[] = [
+                    'matricula'       => $afastamento->MATRICULA,
+                    'empresa'         => $afastamento->EMPRESA,
+                    'data_ocorrencia' => $dataOcorrencia,
+                ];
             } catch (\Throwable $th) {
                 $this->error('Erro ao inserir dados: ' . $th->getMessage());
+                $erros[] = "Matrícula {$afastamento->MATRICULA} / Empresa {$afastamento->EMPRESA} / {$dataOcorrencia}: " . $th->getMessage();
                 continue;
             }
         }
+
+        Mail::to('viktor.santos@promofarma.com.br')->send(new AfastamentoAlerta($sucessos, $erros));
     }
 }

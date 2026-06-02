@@ -46,6 +46,7 @@ class LancamentosAtestados extends Model
 
         $chaves = $afastamentos->map(fn($a) => $a->MATRICULA . '|' . $a->EMPRESA . '|' . $a->DATA_OCORRENCIA);
 
+
         return self::where('PROCESSAR', 'S')
             ->where(function ($query) {
                 $query->whereNull('ENVIADO_FOLHA')->orWhere('ENVIADO_FOLHA', 'N');
