@@ -33,7 +33,7 @@
                 <tr>
                     <td>{{ $item['matricula'] }}</td>
                     <td>{{ $item['empresa'] }}</td>
-                    <td>{{ $item['data_ocorrencia'] }}</td>
+                    <td>{{ \Carbon\Carbon::parse($item['data_ocorrencia'])->format('d/m/Y') }}</td>
                 </tr>
                 @endforeach
             </tbody>

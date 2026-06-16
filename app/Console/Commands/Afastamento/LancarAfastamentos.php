@@ -135,6 +135,6 @@ class LancarAfastamentos extends Command
             }
         }
 
-        Mail::to(['viktor.santos@promofarma.com.br', 'andrea.scotton@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
+        Mail::to(['viktor.santos@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
     }
 }
