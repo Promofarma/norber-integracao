@@ -26,6 +26,8 @@ class LancarAfastamentos extends Command
 
     public function LancarAfastamentoFolha()
     {
+
+
         $client = new Client();
         $endpoint = 'https://hml-api1.lg.com.br/v2/servicodeafastamento';
         //  $endpoint = 'https://prd-api1.lg.com.br/v2/servicodeafastamento';S
@@ -33,8 +35,6 @@ class LancarAfastamentos extends Command
         $headers = (new LGheaders())->getHeadersHomolog();
 
         $afastamentos = $this->getAfastamentosProcfit();
-
-
 
         $sucessos = [];
         $erros = [];
@@ -46,7 +46,7 @@ class LancarAfastamentos extends Command
 
             $cid               = $afastamento->CID_FOLHA ?? 0;
             $diasAuxilio       = $afastamento->DIAS_AUXILIO_DOENCA ?? 0;
-            $doencaTrabalho    = $afastamento->DOENCA_RELACIONADA_TRABALHO ?? 0;
+            $doencaTrabalho = ($afastamento->DOENCA_RELACIONADA_TRABALHO ?? 'N') === 'S' ? 1 : 0;
             $semPrevisao       = $afastamento->SEM_PREVISAO_RETORNO ?? 0;
 
             $soapBody = <<<XML
@@ -84,6 +84,8 @@ class LancarAfastamentos extends Command
             </soapenv:Body>
         </soapenv:Envelope>
         XML;
+
+
 
             try {
                 $response = $client->post($endpoint, [
@@ -125,12 +127,14 @@ class LancarAfastamentos extends Command
                     'data_ocorrencia' => $dataOcorrencia,
                 ];
             } catch (\Throwable $th) {
+
+
                 $this->error('Erro ao inserir dados: ' . $th->getMessage());
                 $erros[] = "Matrícula {$afastamento->MATRICULA} / Empresa {$afastamento->EMPRESA} / {$dataOcorrencia}: " . $th->getMessage();
                 continue;
             }
         }
 
-        Mail::to('viktor.santos@promofarma.com.br')->send(new AfastamentoAlerta($sucessos, $erros));
+        Mail::to(['viktor.santos@promofarma.com.br', 'andrea.scotton@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
     }
 }
