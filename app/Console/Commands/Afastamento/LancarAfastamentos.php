@@ -198,7 +198,7 @@ if ($afastamento->details->isNotEmpty()) {
         }
 
          if (!empty($sucessos) || !empty($erros)) {
-            Mail::to(['viktor.santos@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
+            Mail::to(['viktor.santos@promofarma.com.br', 'andrea.scotton@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
         }
     }
 }
