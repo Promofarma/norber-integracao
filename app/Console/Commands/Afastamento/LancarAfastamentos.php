@@ -55,6 +55,11 @@ class LancarAfastamentos extends Command
 
             $atestados = '';
 
+
+            $diasAfastamentoXml = $afastamento->DIAS_AFASTAMENTO !== null && $afastamento->DIAS_AFASTAMENTO !== ''
+            ? "<v1:DiasAfastamento>{$afastamento->DIAS_AFASTAMENTO}</v1:DiasAfastamento>"
+            : '';
+
 if ($afastamento->details->isNotEmpty()) {
 
     $xmlAtestados = '';
@@ -80,9 +85,6 @@ if ($afastamento->details->isNotEmpty()) {
         $semPrevisaoRetorno = ($detail->SEM_PREVISAO_RETORNO ?? 'N') === 'S' ? 1 : 0;
 
 
-        $diasAfastamentoXml = $afastamento->DIAS_AFASTAMENTO !== null && $afastamento->DIAS_AFASTAMENTO !== ''
-        ? "<v1:DiasAfastamento>{$afastamento->DIAS_AFASTAMENTO}</v1:DiasAfastamento>"
-        : '';
 
         $xmlAtestados .= <<<XML
                         <v1:AtestadoMedico>
@@ -129,7 +131,7 @@ if ($afastamento->details->isNotEmpty()) {
                             <v1:Cid>
                                 <v1:Codigo>{$cid}</v1:Codigo>
                             </v1:Cid>
-                            {$dataFimXml}
+                             {$dataFimXml}
                              $diasAfastamentoXml
                             <v1:DiasAuxilioDoenca>{$diasAuxilio}</v1:DiasAuxilioDoenca>
                             <v1:DoencaRelacionadaAoTrabalho>{$doencaTrabalho}</v1:DoencaRelacionadaAoTrabalho>
