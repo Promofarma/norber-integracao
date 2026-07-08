@@ -36,7 +36,7 @@ class LancarAfastamentos extends Command
 
         $afastamentos = $this->getAfastamentosProcfit();
 
-        dd($afastamentos);
+
 
         $sucessos = [];
         $erros = [];
@@ -190,7 +190,7 @@ if ($afastamento->details->isNotEmpty()) {
                 ];
             } catch (\Throwable $th) {
 
-                dd($th);
+
                 $this->error('Erro ao inserir dados: ' . $th->getMessage());
                 $erros[] = "Matrícula {$afastamento->MATRICULA} / Empresa {$afastamento->EMPRESA} / {$dataOcorrencia}: " . $th->getMessage();
                 continue;
