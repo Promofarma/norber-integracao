@@ -36,10 +36,17 @@ class LancarAfastamentos extends Command
 
         $afastamentos = $this->getAfastamentosProcfit();
 
+
+
+
+
         $sucessos = [];
         $erros = [];
 
         foreach ($afastamentos as $afastamento) {
+
+
+
             $dataOcorrencia    = date('Y-m-d', strtotime($afastamento->DATA_OCORRENCIA));
             $dataFim           = $afastamento->DATA_FIM ? date('Y-m-d', strtotime($afastamento->DATA_FIM)) : null;
             $dataFimXml        = $dataFim ? "<v1:DataFim>{$dataFim}</v1:DataFim>" : '';
@@ -48,6 +55,50 @@ class LancarAfastamentos extends Command
             $diasAuxilio       = $afastamento->DIAS_AUXILIO_DOENCA ?? 0;
             $doencaTrabalho = ($afastamento->DOENCA_RELACIONADA_TRABALHO ?? 'N') === 'S' ? 1 : 0;
             $semPrevisao       = $afastamento->SEM_PREVISAO_RETORNO ?? 0;
+            $acidenteTrajeto   = ($afastamento->ACIDENTE_TRAJETO ?? 'N') === 'S' ? 1 : 0;
+
+            $atestados = '';
+
+if ($afastamento->details->isNotEmpty()) {
+
+    $xmlAtestados = '';
+
+    foreach ($afastamento->details as $detail) {
+
+        $dataInicio = $detail->DATA_INICIO
+            ? date('Y-m-d', strtotime($detail->DATA_INICIO))
+            : '';
+
+        $dataRetorno = $detail->DATA_RETORNO
+            ? date('Y-m-d', strtotime($detail->DATA_RETORNO))
+            : '';
+
+        $semPrevisaoRetorno = ($detail->SEM_PREVISAO_RETORNO ?? 'N') === 'S' ? 1 : 0;
+
+        $xmlAtestados .= <<<XML
+                        <v1:AtestadoMedico>
+                            <v1:DadosGerais>
+                                <v1:Cid>
+                                    <v1:Codigo>{$detail->CID_FOLHA}</v1:Codigo>
+                                </v1:Cid>
+                                <v1:DataInicio>{$dataInicio}</v1:DataInicio>
+                                <v1:DataRetorno>{$dataRetorno}</v1:DataRetorno>
+                                <v1:DiasAtestado>{$detail->DIAS_ATESTADO}</v1:DiasAtestado>
+                                <v1:SemPrevisaoDeRetorno>{$semPrevisaoRetorno}</v1:SemPrevisaoDeRetorno>
+                                <v1:Sequencia>{$detail->SEQUENCIA}</v1:Sequencia>
+                            </v1:DadosGerais>
+                        </v1:AtestadoMedico>
+
+                        XML;
+                            }
+
+                            $atestados = <<<XML
+                                    <v1:AtestadosMedicos>
+                                    {$xmlAtestados}
+                                    </v1:AtestadosMedicos>
+                        XML;
+                        }
+
 
             $soapBody = <<<XML
         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dto="lg.com.br/svc/dto" xmlns:v2="lg.com.br/api/v2" xmlns:v1="lg.com.br/api/dto/v1">
@@ -64,6 +115,8 @@ class LancarAfastamentos extends Command
                                 </v1:Empresa>
                                 <v1:Matricula>{$afastamento->MATRICULA}</v1:Matricula>
                             </v1:IdentificacaoDoContrato>
+                             <v1:AcidenteDeTrajeto>$acidenteTrajeto</v1:AcidenteDeTrajeto>
+                                             {$atestados}
                             <v1:Cid>
                                 <v1:Codigo>{$cid}</v1:Codigo>
                             </v1:Cid>
@@ -128,7 +181,7 @@ class LancarAfastamentos extends Command
                 ];
             } catch (\Throwable $th) {
 
-
+                dd($th);
                 $this->error('Erro ao inserir dados: ' . $th->getMessage());
                 $erros[] = "Matrícula {$afastamento->MATRICULA} / Empresa {$afastamento->EMPRESA} / {$dataOcorrencia}: " . $th->getMessage();
                 continue;
@@ -136,7 +189,7 @@ class LancarAfastamentos extends Command
         }
 
          if (!empty($sucessos) || !empty($erros)) {
-            Mail::to(['viktor.santos@promofarma.com.br', 'andrea.scotton@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
+            Mail::to(['viktor.santos@promofarma.com.br'])->send(new AfastamentoAlerta($sucessos, $erros));
         }
     }
 }
