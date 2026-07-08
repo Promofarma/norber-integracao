@@ -13,7 +13,7 @@ class AfastamentoAlerta extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public array $sucessos,
+
         public array $erros
     ) {}
 
