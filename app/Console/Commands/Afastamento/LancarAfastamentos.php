@@ -36,16 +36,12 @@ class LancarAfastamentos extends Command
 
         $afastamentos = $this->getAfastamentosProcfit();
 
-
-
-
+        dd($afastamentos);
 
         $sucessos = [];
         $erros = [];
 
         foreach ($afastamentos as $afastamento) {
-
-
 
             $dataOcorrencia    = date('Y-m-d', strtotime($afastamento->DATA_OCORRENCIA));
             $dataFim           = $afastamento->DATA_FIM ? date('Y-m-d', strtotime($afastamento->DATA_FIM)) : null;
@@ -54,7 +50,7 @@ class LancarAfastamentos extends Command
             $cid               = $afastamento->CID_FOLHA ?? 0;
             $diasAuxilio       = $afastamento->DIAS_AUXILIO_DOENCA ?? 0;
             $doencaTrabalho = ($afastamento->DOENCA_RELACIONADA_TRABALHO ?? 'N') === 'S' ? 1 : 0;
-            $semPrevisao       = $afastamento->SEM_PREVISAO_RETORNO ?? 0;
+            $semPrevisao       = ($afastamento->SEM_PREVISAO_RETORNO ?? 'N') === 'S' ? 1 : 0;
             $acidenteTrajeto   = ($afastamento->ACIDENTE_TRAJETO ?? 'N') === 'S' ? 1 : 0;
 
             $atestados = '';
@@ -70,10 +66,23 @@ if ($afastamento->details->isNotEmpty()) {
             : '';
 
         $dataRetorno = $detail->DATA_RETORNO
-            ? date('Y-m-d', strtotime($detail->DATA_RETORNO))
+        ? date('Y-m-d', strtotime($detail->DATA_RETORNO))
+        : '';
+
+        $dataRetornoXml = $dataRetorno
+            ? "<v1:DataRetorno>{$dataRetorno}</v1:DataRetorno>"
+            : '';
+
+        $diasAtestadoXml = $detail->DIAS_ATESTADO !== null && $detail->DIAS_ATESTADO !== ''
+            ? "<v1:DiasAtestado>{$detail->DIAS_ATESTADO}</v1:DiasAtestado>"
             : '';
 
         $semPrevisaoRetorno = ($detail->SEM_PREVISAO_RETORNO ?? 'N') === 'S' ? 1 : 0;
+
+
+        $diasAfastamentoXml = $afastamento->DIAS_AFASTAMENTO !== null && $afastamento->DIAS_AFASTAMENTO !== ''
+        ? "<v1:DiasAfastamento>{$afastamento->DIAS_AFASTAMENTO}</v1:DiasAfastamento>"
+        : '';
 
         $xmlAtestados .= <<<XML
                         <v1:AtestadoMedico>
@@ -82,8 +91,8 @@ if ($afastamento->details->isNotEmpty()) {
                                     <v1:Codigo>{$detail->CID_FOLHA}</v1:Codigo>
                                 </v1:Cid>
                                 <v1:DataInicio>{$dataInicio}</v1:DataInicio>
-                                <v1:DataRetorno>{$dataRetorno}</v1:DataRetorno>
-                                <v1:DiasAtestado>{$detail->DIAS_ATESTADO}</v1:DiasAtestado>
+                                    {$dataRetornoXml}
+                                    {$diasAtestadoXml}
                                 <v1:SemPrevisaoDeRetorno>{$semPrevisaoRetorno}</v1:SemPrevisaoDeRetorno>
                                 <v1:Sequencia>{$detail->SEQUENCIA}</v1:Sequencia>
                             </v1:DadosGerais>
@@ -121,7 +130,7 @@ if ($afastamento->details->isNotEmpty()) {
                                 <v1:Codigo>{$cid}</v1:Codigo>
                             </v1:Cid>
                             {$dataFimXml}
-                            <v1:DiasAfastamento>{$afastamento->DIAS_AFASTAMENTO}</v1:DiasAfastamento>
+                             $diasAfastamentoXml
                             <v1:DiasAuxilioDoenca>{$diasAuxilio}</v1:DiasAuxilioDoenca>
                             <v1:DoencaRelacionadaAoTrabalho>{$doencaTrabalho}</v1:DoencaRelacionadaAoTrabalho>
                             <v1:Motivo>{$afastamento->MOTIVO_AFASTAMENTO_FOLHA}</v1:Motivo>
